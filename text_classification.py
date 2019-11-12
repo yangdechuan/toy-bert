@@ -113,7 +113,7 @@ def train(train_dataset, model, device, evaluate_during_training=False, eval_dat
                 logging_loss = tr_loss
                 if evaluate_during_training:
                     result = evaluate(eval_dataset, model, device)
-                    logging.info("eval accuracy: {}, eval loss: {}".format(result["acc"], result["loss"]))
+                    logger.info("eval accuracy: {}, eval loss: {}".format(result["acc"], result["loss"]))
                     for k, v in result.items():
                         tb_writer.add_scalar("eval_{}".format(k), v, global_step)
 

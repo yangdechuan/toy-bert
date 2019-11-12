@@ -46,36 +46,6 @@ class Sst2Processor(object):
         return lines[1:]
 
 
-class ColaProcessor(object):
-    def __init__(self):
-        self.train_file = "data/CoLA/train.tsv"
-        self.dev_file = "data/CoLA/dev.tsv"
-
-    def get_train_examples(self):
-        examples = []
-        for line in self._read_tsv(self.train_file):
-            examples.append(InputExample(text_a=line[3], text_b=None, label=line[1]))
-        return examples
-
-    def get_dev_examples(self):
-        examples = []
-        for line in self._read_tsv(self.dev_file):
-            examples.append(InputExample(text_a=line[3], text_b=None, label=line[1]))
-        return examples
-
-    def get_labels(self):
-        return ["0", "1"]
-
-    @classmethod
-    def _read_tsv(cls, input_file):
-        with open(input_file, "r", encoding="utf-8") as fr:
-            reader = csv.reader(fr, delimiter="\t")
-            lines = []
-            for line in reader:
-                lines.append(line)
-        return lines
-
-
 def convert_examples_to_features(examples, tokenizer, label_list,
                                  max_length=512):
     label_map = {label: i for i, label in enumerate(label_list)}
