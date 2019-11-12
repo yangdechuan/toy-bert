@@ -86,7 +86,7 @@ def train(train_dataset, model, device, evaluate_during_training=False, eval_dat
     global_step = 0
     tr_loss, logging_loss = 0, 0
     for epoch in range(1, args.epochs + 1):
-        print("====Epoch {}".format(epoch))
+        logger.info("====Epoch {}".format(epoch))
         epoch_iterator = tqdm(train_dataloader, desc="Iteration")
         for step, batch in enumerate(epoch_iterator):
             model.train()
