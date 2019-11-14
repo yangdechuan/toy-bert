@@ -37,6 +37,7 @@ parser.add_argument("--weight-decay", default=0, type=float)
 parser.add_argument("--learning-rate", default=5e-5, type=float)
 parser.add_argument("--max-grad-norm", default=1.0, type=float)
 parser.add_argument("--seed", default=233, type=int)
+parser.add_argument("--use-tensorboard", action="store_true")
 args = parser.parse_args()
 
 
@@ -106,10 +107,15 @@ def train(train_dataset, model, device, evaluate_during_training=False, eval_dat
             tr_loss += loss.item()
 
             if global_step % args.logging_steps == 0:
-                tb_writer.add_histogram("classifier.weight", model.module.classifier.weight, global_step)
-                tb_writer.add_histogram("classifier.bias", model.module.classifier.bias, global_step)
-                tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
-                tb_writer.add_scalar("train_loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
+                if args.use_tensorboard:
+                    if hasattr(model, "module"):
+                        tb_writer.add_histogram("classifier.weight", model.module.classifier.weight, global_step)
+                        tb_writer.add_histogram("classifier.bias", model.module.classifier.bias, global_step)
+                    else:
+                        tb_writer.add_histogram("classifier.weight", model.classifier.weight, global_step)
+                        tb_writer.add_histogram("classifier.bias", model.classifier.bias, global_step)
+                    tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
+                    tb_writer.add_scalar("train_loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
                 logging_loss = tr_loss
                 if evaluate_during_training:
                     result = evaluate(eval_dataset, model, device)
