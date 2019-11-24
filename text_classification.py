@@ -61,7 +61,7 @@ def load_examples(tokenizer, mode="train"):
     return dataset
 
 
-def train(train_dataset, model, device, evaluate_during_training=False, eval_dataset=None):
+def train(train_dataset, model, device, eval_dataset=None):
     if args.use_tensorboard:
         tb_writer = SummaryWriter()
 
@@ -116,7 +116,7 @@ def train(train_dataset, model, device, evaluate_during_training=False, eval_dat
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar("train_loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
                 logging_loss = tr_loss
-                if evaluate_during_training:
+                if eval_dataset is not None:
                     result = evaluate(eval_dataset, model, device)
                     logger.info("eval accuracy: {}, eval loss: {}".format(result["acc"], result["loss"]))
                     for k, v in result.items():
@@ -188,8 +188,7 @@ def main():
     train_dataset = load_examples(tokenizer, mode="train")
     eval_dataset = load_examples(tokenizer, mode="dev")
 
-    train(train_dataset, model, device,
-          evaluate_during_training=True, eval_dataset=eval_dataset)
+    train(train_dataset, model, device, eval_dataset=eval_dataset)
     # evaluate(eval_dataset, model, device)
 
 
