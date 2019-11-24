@@ -62,7 +62,8 @@ def load_examples(tokenizer, mode="train"):
 
 
 def train(train_dataset, model, device, evaluate_during_training=False, eval_dataset=None):
-    tb_writer = SummaryWriter()
+    if args.use_tensorboard:
+        tb_writer = SummaryWriter()
 
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, batch_size=args.train_batch_size, sampler=train_sampler)
@@ -87,8 +88,8 @@ def train(train_dataset, model, device, evaluate_during_training=False, eval_dat
     global_step = 0
     tr_loss, logging_loss = 0, 0
     for epoch in range(1, args.epochs + 1):
-        logger.info("====Epoch {}".format(epoch))
-        epoch_iterator = tqdm(train_dataloader, desc="Iteration")
+        logger.info("##### Epoch {} #####".format(epoch))
+        epoch_iterator = tqdm(train_dataloader, desc="Training")
         for step, batch in enumerate(epoch_iterator):
             model.train()
             batch = tuple(t.to(device) for t in batch)
@@ -106,14 +107,12 @@ def train(train_dataset, model, device, evaluate_during_training=False, eval_dat
             loss.backward()
             tr_loss += loss.item()
 
+            # Evaluate.
             if global_step % args.logging_steps == 0:
                 if args.use_tensorboard:
-                    if hasattr(model, "module"):
-                        tb_writer.add_histogram("classifier.weight", model.module.classifier.weight, global_step)
-                        tb_writer.add_histogram("classifier.bias", model.module.classifier.bias, global_step)
-                    else:
-                        tb_writer.add_histogram("classifier.weight", model.classifier.weight, global_step)
-                        tb_writer.add_histogram("classifier.bias", model.classifier.bias, global_step)
+                    model_to_save = model.module if hasattr(model, "module") else model
+                    tb_writer.add_histogram("classifier.weight", model_to_save.classifier.weight, global_step)
+                    tb_writer.add_histogram("classifier.bias", model_to_save.classifier.bias, global_step)
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar("train_loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
                 logging_loss = tr_loss
@@ -123,6 +122,7 @@ def train(train_dataset, model, device, evaluate_during_training=False, eval_dat
                     for k, v in result.items():
                         tb_writer.add_scalar("eval_{}".format(k), v, global_step)
 
+            # Update parameters.
             if (step + 1) % args.gradient_accumulation_steps == 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
                 optimizer.step()
@@ -151,16 +151,15 @@ def evaluate(eval_dataset, model, device):
             tmp_eval_loss, logits = outputs[0:2]
 
         if torch.cuda.device_count() > 1:
-            tmp_eval_loss = tmp_eval_loss.mean().item()
-        eval_loss += tmp_eval_loss
+            tmp_eval_loss = tmp_eval_loss.mean()
+        eval_loss += tmp_eval_loss.item()
         nb_eval_steps += 1
         if preds is None:
-            preds = logits.cpu().numpy()
+            preds = logits.argmax(dim=-1).cpu().numpy()
             labels = inputs["labels"].cpu().numpy()
         else:
-            preds = np.append(preds, logits.cpu().numpy(), axis=0)
+            preds = np.append(preds, logits.argmax(dim=-1).cpu().numpy(), axis=0)
             labels = np.append(labels, inputs["labels"].cpu().numpy(), axis=0)
-    preds = np.argmax(preds, axis=1)
     eval_loss = eval_loss / nb_eval_steps
     acc = metrics.accuracy_score(labels, preds)
     result = {
