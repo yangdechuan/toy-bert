@@ -107,8 +107,9 @@ def train(train_dataset, model, device, eval_dataset=None):
             loss.backward()
             tr_loss += loss.item()
 
-            # Evaluate.
+            # Logging
             if global_step % args.logging_steps == 0:
+                # Write some info to tensorboard.
                 if args.use_tensorboard:
                     model_to_save = model.module if hasattr(model, "module") else model
                     tb_writer.add_histogram("classifier.weight", model_to_save.classifier.weight, global_step)
@@ -116,6 +117,7 @@ def train(train_dataset, model, device, eval_dataset=None):
                     tb_writer.add_scalar("lr", scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar("train_loss", (tr_loss - logging_loss) / args.logging_steps, global_step)
                 logging_loss = tr_loss
+                # Evaluation.
                 if eval_dataset is not None:
                     result = evaluate(eval_dataset, model, device)
                     logger.info("eval accuracy: {}, eval loss: {}".format(result["acc"], result["loss"]))
